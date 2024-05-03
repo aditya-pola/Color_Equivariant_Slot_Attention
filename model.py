@@ -8,7 +8,7 @@ from ceconv.pooling import GroupCosetMaxPool, GroupMaxPool2d
 
 _DROPOUT_FACTOR = 0.3
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
 class SlotAttention(nn.Module):
     def __init__(self, num_slots, dim, iters = 3, eps = 1e-8, hidden_dim = 128):
@@ -299,6 +299,9 @@ class ColorEquivariantSlotAttentionNet(nn.Module):
             separable=self.separable,
             ce_layers=self.ce_layers,
         )
+
+        self.norm = nn.LayerNorm((16384, 60))
+
         self.decoder_cnn = Decoder(self.hid_dim, self.resolution)
 
         self.fc1 = nn.Linear(60, hid_dim)
@@ -316,7 +319,8 @@ class ColorEquivariantSlotAttentionNet(nn.Module):
 
         # Convolutional encoder with position embedding.
         x = self.encoder_cnn(image)  # CNN Backbone.
-        x = nn.LayerNorm(x.shape[1:]).to(device)(x)
+        # x = nn.LayerNorm(x.shape[1:]).to(device)(x)
+        x = self.norm(x)
         x = self.fc1(x)
         x = F.relu(x)
         x = self.fc2(x)  # Feedforward network on set.
@@ -354,12 +358,12 @@ if __name__ == "__main__":
     planes = 20
     rotations = 3
 
-    summary(SlotAttentionAutoEncoder(resolution=(128, 128), 
-                                     num_slots=7, 
-                                     num_iterations=3, 
-                                     hid_dim=32), 
-                                     (8, 3, 128, 128), 
-                                     device="cuda:0")
+    # summary(SlotAttentionAutoEncoder(resolution=(128, 128), 
+    #                                  num_slots=7, 
+    #                                  num_iterations=3, 
+    #                                  hid_dim=32), 
+    #                                  (8, 3, 128, 128), 
+    #                                  device="cuda:0")
 
     summary(ColorEquivariantSlotAttentionNet(resolution=(128, 128), 
                                              num_slots=7, 
